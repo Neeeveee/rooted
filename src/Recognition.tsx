@@ -9,6 +9,7 @@ export function Recognition({ home, onChange, onReady }: { home: Home; onChange:
   const active = useRef<AbortController | null>(null);
   useEffect(() => { setBusy(false); return () => { active.current?.abort(); }; }, [home.backgroundImageDataUrl]);
   async function detect() {
+    if (__ROOTED_STATIC__) return;
     const controller = new AbortController(); active.current = controller;
     setBusy(true); setError(''); setComplete(false);
     try {
@@ -24,5 +25,6 @@ export function Recognition({ home, onChange, onReady }: { home: Home; onChange:
     } catch (e) { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : 'Recognition could not complete. Your current plan is unchanged.'); }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
+  if (__ROOTED_STATIC__) return <section className="import-notes" aria-label="Automatic floor-plan recognition"><h3>Automatic recognition · unavailable here</h3><p>This GitHub Pages site has no Node.js backend. Gemini recognition is disabled; no image is sent to an API. Use Map manually, then calibrate and confirm your regions. Recognition remains available when running Rooted locally.</p></section>;
   return <section className="import-notes" aria-label="Automatic floor-plan recognition"><h3>Read your plan <span className="beta-label">Beta</span></h3><p className="fine-print">Gemini suggests preliminary rooms, furniture, walls, doors and windows. It can miss or misplace objects. Every result needs your review and scale calibration. No recognition runs until you click below. Google’s Free Tier may use submitted content to improve its products.</p><p className="fine-print">Recognition replaces draft overlays and resets verification. Your saved home is unchanged until you save.</p><button className="primary" disabled={busy} onClick={() => void detect()}>{busy ? 'Reading your floor plan…' : 'Recognize with Gemini'}</button>{busy && <p role="status">This may take up to a minute. Keep this page open.</p>}{complete && <p role="status">Detection ready. Open Review & calibrate to check the unconfirmed regions before saving.</p>}{error && <p role="alert" className="warning-text">{error}</p>}</section>;
 }

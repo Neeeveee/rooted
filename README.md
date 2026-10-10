@@ -131,3 +131,11 @@ Rooted wordmark links home; breadcrumbs clarify stages. Personalization now has 
 Start is now the entry screen on open/refresh, including a short product introduction and an explicit Start/Continue action. Rooted and the Start breadcrumb return there. Completed homes offer a direct Plant workspace shortcut; My plants remains the owned-instance dashboard. Guided flow is Start → questions/cards → Home Setup → Plant workspace; independent catalog exploration is optional afterward. Restarting personalization retains existing plants/home and taste choices, resets completed question/card positions, and resumes unfinished positions.
 
 Plant cards have a stacked deck, a reversible flip and directional like/pass exits. Choices save immediately; outgoing copies are inert and removed after animation. Reduced-motion preferences disable these transitions. Floor-plan upload opens the optional real Gemini recognition panel immediately. Existing uploaded plans also expose recognition in basic setup. Recognition remains mounted across tool tabs, runs only on explicit request, and successful recognition opens review/calibration. An always-visible Edit floor plan action is available in the plant workspace. No live Gemini request was made in this correction.
+
+## GitHub Pages
+
+`npm run build:pages` creates the static frontend for `/rooted/`. The deployment workflow runs on pushes to main or manually in Actions. In repository Settings → Pages, set Source to GitHub Actions, then run “Deploy Rooted to GitHub Pages”. Published URL: https://Neeeveee.github.io/rooted/ (also shown in the workflow deployment and Settings → Pages).
+
+Pages does not run Node.js: Gemini recognition is disabled with an in-app explanation. Manual floor-plan upload/editing, calibration, preview, quiz and plant adoption remain browser-local. Data from localhost does not transfer to the Pages origin. No backend, API key or GitHub secret is required. Local `npm run dev` and `npm run build` retain their existing behavior and `/` base.
+
+The Pages build excludes the entire public fixture directory to prevent publishing user floor plans. The local example is hidden on Pages. `.env.local` and credentials must never be committed or uploaded; `GEMINI_API_KEY` remains server-only and never receives a VITE_ prefix.
