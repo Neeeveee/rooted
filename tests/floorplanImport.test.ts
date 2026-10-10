@@ -1,0 +1,61 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { applyGeometryImport, importGeometry } from '../src/floorplanImport.ts';
+import { assessment, calibratedSize, changeHome, freshStore, parseStore } from '../src/appModel.ts';
+import { defaults } from '../src/model.ts';
+const fixture = JSON.parse(readFileSync(new URL('../floorplan_detection_test.json', import.meta.url), 'utf8'));
+const actual = { width: 849, height: 1200 };
+test('attached fixture maps all 33 regions to image-normalized editable unconfirmed rectangles', () => {
+  const result = importGeometry(fixture, 'manual-fixture');
+  assert.equal(result.regions.length, 33);
+  assert.deepEqual(['furniture', 'wall', 'door', 'window'].map(k => result.regions.filter(r => r.kind === k).length), [11, 15, 4, 3]);
+  const bed = result.regions.find(r => r.id === 'f06')!;
+  assert.equal(bed.x, .678); assert.equal(bed.y, .255);
+  assert.ok(Math.abs(bed.width - .119) < 1e-12);
+  assert.ok(result.regions.every(r => !r.confirmed));
+  const wall = result.regions.find(r => r.id === 'w01')!;
+  assert.ok(Math.abs(wall.height - 1 / 1200) < 1e-12);
+  assert.equal(result.metadata.origin, 'manual-fixture');
+});
+test('import resets geometry/scale verification without mutating existing data and rejects mismatched images', () => {
+  const s = freshStore(); const before = JSON.stringify(s);
+  const imported = importGeometry(fixture);
+  const h = applyGeometryImport(s.home, imported, actual);
+  assert.equal(h.calibration, undefined); assert.equal(h.widthM, undefined); assert.equal(h.geometryVerified, false);
+  assert.equal(assessment(defaults, h).spaceStatus, 'unknown');
+  assert.equal(JSON.stringify(s), before);
+  assert.throws(() => applyGeometryImport(s.home, imported, { width: 850, height: 1200 }), /do not match/);
+});
+test('fixture bed and sofa placements conflict only after scale and obstacle confirmation; open floor stays unknown', () => {
+  const h = applyGeometryImport(freshStore().home, importGeometry(fixture), actual);
+  const calibration = { a: [0, 0] as [number, number], b: [1, 0] as [number, number], meters: 10, aspect: 849 / 1200 };
+  const size = calibratedSize(calibration)!;
+  const calibrated = { ...h, calibration, widthM: size.width, heightM: size.height };
+  const placed = (x: number, y: number) => ({ ...defaults, x: x / 849 * size.width, y: y / 1200 * size.height });
+  assert.equal(assessment(placed(627, 377), calibrated).spaceStatus, 'unknown');
+  const confirmed = { ...calibrated, regions: h.regions!.map(r => ({ ...r, confirmed: true })) };
+  assert.ok(assessment(placed(627, 377), confirmed).overlapIds.includes('f06'));
+  assert.ok(assessment(placed(231, 703), confirmed).overlapIds.includes('f03'));
+  assert.equal(assessment(placed(441, 551), confirmed).spaceStatus, 'unknown');
+  const room = { id: 'reviewed-room', label: 'Manually reviewed interior', kind: 'room' as const, x: .3, y: .43, width: .25, height: .05, confirmed: true };
+  assert.equal(assessment({ ...placed(441, 551), speciesId: 'snake' }, { ...confirmed, geometryVerified: true, regions: [...confirmed.regions, room] }).spaceStatus, 'clear');
+});
+test('imported metadata and edited geometry survive existing storage schema', () => {
+  const s = freshStore();
+  const home = applyGeometryImport(s.home, importGeometry(fixture, 'manual-fixture'), actual);
+  const stored = changeHome(s, { ...home, regions: home.regions!.map(r => r.id === 'f06' ? { ...r, label: 'Reviewed bed', confirmed: true } : r) });
+  const reloaded = parseStore(JSON.stringify(stored));
+  assert.deepEqual(reloaded?.home, JSON.parse(JSON.stringify(stored.home)));
+  assert.deepEqual(reloaded?.ownedPlants, s.ownedPlants);
+  assert.equal(parseStore(JSON.stringify({ ...stored, home: { ...stored.home, geometryImport: { ...home.geometryImport, imageWidth: -1 } } })), null);
+});
+test('future API envelope is reusable and never trusts provider confirmation or scale claims', () => {
+  const result = importGeometry({ version: 1, coordinateSystem: 'normalized-0-1', imageWidth: 849, imageHeight: 1200, regions: [{ id: 'api-1', label: 'Bed', kind: 'furniture', x: .6, y: .2, width: .1, height: .1, confirmed: true }], geometryVerified: true });
+  assert.equal(result.regions[0].confirmed, false);
+  assert.equal(result.metadata.origin, 'external-json');
+  assert.throws(() => importGeometry({ ...fixture, coordinate_system: 'pixels' }), /coordinate system/);
+  assert.throws(() => importGeometry({ ...fixture, furniture: [fixture.furniture[0], fixture.furniture[0]] }), /duplicate/);
+  assert.throws(() => importGeometry({ ...fixture, furniture: [{ ...fixture.furniture[0], polygon: [[1, 2], [5, 3], [6, 7], [2, 6]] }] }), /rectangles/);
+  assert.throws(() => importGeometry({ ...fixture, windows: [{ id: 'bad', line: [[20, 20], [60, 60]] }] }), /Angled/);
+});

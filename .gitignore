@@ -2,17 +2,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 .DS_Store
-.openai/workflow/
-.env.local
+.openai/
 .env
 .env.*
 !.env.example
-
-# Local QA artifacts
 /backups/
-/*-test.png
-/*-verified.png
-/*-fixed.png
-/my-plants-records.png
-/plant-record-modal.png
-/verification-click-feedback.png
+/*.png
