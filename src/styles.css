@@ -158,3 +158,4 @@ h1,h2,h3 { text-wrap: balance; }
 .resident-record-modal .resident-record-heading{align-items:center}
 .resident-record-modal .resident-record-heading h2{font-size:28px}
 @media(max-width:650px){.resident-record-modal{width:calc(100% - 24px);max-height:calc(100dvh - 24px);padding:20px}.resident-record-modal .resident-portrait .plant-art{height:180px}.resident-record-modal .resident-record-body{gap:24px}}
+.quiz-review{margin:24px 0}.quiz-review>div{padding:16px 0;border-bottom:1px solid var(--line)}.quiz-review dt{font-size:13px;color:var(--muted);margin-bottom:8px}.quiz-review dd{margin:0;display:flex;justify-content:space-between;align-items:center;gap:20px}.quiz-review .text-button{flex-shrink:0}.flashcard-finish .lede{max-width:55ch}

@@ -139,3 +139,9 @@ Plant cards have a stacked deck, a reversible flip and directional like/pass exi
 Pages does not run Node.js: Gemini recognition is disabled with an in-app explanation. Manual floor-plan upload/editing, calibration, preview, quiz and plant adoption remain browser-local. Data from localhost does not transfer to the Pages origin. No backend, API key or GitHub secret is required. Local `npm run dev` and `npm run build` retain their existing behavior and `/` base.
 
 The Pages build excludes the entire public fixture directory to prevent publishing user floor plans. The local example is hidden on Pages. `.env.local` and credentials must never be committed or uploaded; `GEMINI_API_KEY` remains server-only and never receives a VITE_ prefix.
+
+## Quiz review and returning users
+
+Quiz answers are session-only drafts until the review screen's **Save preferences & continue** action succeeds. Review all seven answers and plant-card choices, edit an answer, or discard changes. Refresh discards unsaved quiz edits while retaining explicitly saved preferences, home and owned plants.
+
+First visits open Welcome. After saving the quiz, returning users resume unfinished Home Setup or enter Plant workspace when their home is ready. **Restart Quiz** opens a fresh quiz draft for demos without deleting home or adoption data. Only a subsequent explicit Save replaces saved preferences.

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshStore, parseStore, adoptCustom, assessment, recommend, switchHomeMode, adopt, editPlant } from '../src/appModel.ts';
-import { landingStage, afterHomeSave, petsWithCat, reviewRegions, searchPlants, beginJourney } from '../src/journeyState.ts';
+import { landingStage, afterHomeSave, petsWithCat, reviewRegions, searchPlants, beginJourney, quizDraft } from '../src/journeyState.ts';
 
 test('Start remains the entry while unfinished quiz progress and older profiles still load', () => {
   const store = freshStore();
@@ -89,9 +89,9 @@ test('invalid expanded profile data and unnamed custom species are rejected',()=
   assert.equal(parseStore(JSON.stringify(custom)),null);
 });
 
-test('Start is distinct from saved plant workspace for returning users',()=>{
+test('saved quiz returns to the workspace on refresh, while explicit Start remains available',()=>{
   const store=freshStore();store.profile.onboardingDone=true;store.home.ready=true;
-  assert.equal(landingStage(store),'welcome');
+  assert.equal(landingStage(store),'preview');
   assert.equal(afterHomeSave(false,'welcome'),'preview');
   assert.equal(afterHomeSave(true,'welcome'),'preview');
   assert.equal(afterHomeSave(true,'preview'),'preview');
@@ -104,4 +104,23 @@ test('Start resets completed quiz/card positions but resumes incomplete progress
   assert.deepEqual(started.likedSpecies,['spider']);
   const resumed=beginJourney({...started,quizStep:7,plantCardIndex:3});
   assert.equal(resumed.quizStep,7);assert.equal(resumed.plantCardIndex,3);
+});
+
+test('quiz drafts ignore legacy unsaved answers and never mutate saved preferences before confirmation',()=>{
+ const saved={...freshStore().profile,onboardingDone:true,careTime:'low' as const,likedSpecies:['spider'],quizStep:7};
+ const draft=quizDraft(saved);draft.careTime='high';draft.likedSpecies!.push('snake');
+ assert.equal(saved.careTime,'low');assert.deepEqual(saved.likedSpecies,['spider']);
+ assert.equal(quizDraft(saved).careTime,'low');assert.equal(quizDraft(saved).quizStep,0);
+ const legacy=quizDraft({...saved,onboardingDone:false});assert.equal(legacy.careTime,null);assert.deepEqual(legacy.likedSpecies,[]);
+ const confirmed={...draft,onboardingDone:true};assert.equal(quizDraft(confirmed).careTime,'high');
+});
+
+test('saved quiz resumes home setup without repeating onboarding; completed home loads workspace and keeps records',()=>{
+ const store=freshStore();assert.equal(landingStage(store),'welcome');
+ store.profile.onboardingDone=true;store.profile.careTime='low';
+ assert.equal(landingStage(store),'setup');
+ store.home.ready=true;
+ const restored=parseStore(JSON.stringify(store))!;
+ assert.equal(landingStage(restored),'preview');assert.equal(restored.profile.careTime,'low');
+ assert.deepEqual(restored.ownedPlants,store.ownedPlants);
 });
