@@ -10,11 +10,8 @@ import './styles.css';
 
 import { landingStage, afterHomeSave, petsWithCat } from './journeyState';
 import type { Stage } from './journeyState';
-import { recordingStorage } from './temporaryRecording';
-// TEMPORARY: GitHub Pages recording data is isolated from ordinary user storage.
-const appStorage = () => __ROOTED_STATIC__ ? recordingStorage(localStorage) : localStorage;
 function App() {
-  const [initial] = useState(() => { try { return loadStore(appStorage()); } catch { return { store: freshStore(), warning: 'Storage is unavailable. Session-only mode.' }; } });
+  const [initial] = useState(() => { try { return loadStore(localStorage); } catch { return { store: freshStore(), warning: 'Storage is unavailable. Session-only mode.' }; } });
   const [store, setStore] = useState(initial.store);
   const [warning, setWarning] = useState(initial.warning);
   const [stage, setStage] = useState<Stage>(landingStage(initial.store));
@@ -28,7 +25,7 @@ function App() {
   const [removed, setRemoved] = useState<OwnedPlant | null>(null);
   const [notice, setNotice] = useState('');
   function persist(next: Store) {
-    try { return saveStore(appStorage(), next); } catch { return 'Storage is unavailable. Session-only changes; keep this tab open.'; }
+    try { return saveStore(localStorage, next); } catch { return 'Storage is unavailable. Session-only changes; keep this tab open.'; }
   }
   function commit(next: Store) { setStore(next); setWarning(persist(next)); }
   function navigate(next: Stage) { if(next!==stage)window.history.pushState({rootedStage:next},''); setStage(next); setNotice(''); window.scrollTo(0, 0); }
